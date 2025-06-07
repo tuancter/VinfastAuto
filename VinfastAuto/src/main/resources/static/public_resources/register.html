@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng ký tài khoản</title>
+    <link href="/libs/bootstrap-5.3.3-dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="/libs/bootstrap-5.3.3-dist/js/bootstrap.js"></script>
+    <script src="/libs/jQuery/jquery-3.7.1.js"></script>
+    <style>
+        body {
+            background: linear-gradient(to right, #43cea2, #185a9d);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Arial', sans-serif;
+        }
+        .register-card {
+            width: 100%;
+            max-width: 500px;
+            background: #fff;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            animation: fadeIn 0.8s ease-in-out;
+        }
+        .register-card h4 {
+            margin-bottom: 25px;
+            font-weight: bold;
+            text-align: center;
+            color: #43cea2;
+        }
+        .register-card .form-label {
+            font-weight: 600;
+            color: #333;
+        }
+        .register-card .btn-success {
+            background: linear-gradient(to right, #43cea2, #185a9d);
+            border: none;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+        .register-card .btn-success:hover {
+            background: linear-gradient(to right, #185a9d, #43cea2);
+        }
+        .register-card .text-center a {
+            color: #43cea2;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .register-card .text-center a:hover {
+            text-decoration: underline;
+        }
+        .register-card .error-msg {
+            margin-top: 15px;
+            color: red;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="register-card">
+    <h4>Đăng ký tài khoản</h4>
+    <form id="registerForm">
+        <div class="mb-3">
+            <label class="form-label">Tên đăng nhập *</label>
+            <input type="text" class="form-control" id="username" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Email *</label>
+            <input type="email" class="form-control" id="email" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Mật khẩu *</label>
+            <input type="password" class="form-control" id="password" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Xác nhận mật khẩu *</label>
+            <input type="password" class="form-control" id="confirmPassword" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Họ *</label>
+            <input type="text" class="form-control" id="lastName" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Tên *</label>
+            <input type="text" class="form-control" id="firstName" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Ngày sinh *</label>
+            <input type="date" class="form-control" id="birthday" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Vị trí (Tỉnh/Thành phố)</label>
+            <select id="position" class="form-select">
+                <option value="">-- Chọn tỉnh/thành phố --</option>
+                <option>Hà Nội</option>
+                <option>Hồ Chí Minh</option>
+                <option>Đà Nẵng</option>
+                <option>Cần Thơ</option>
+                <option>Hải Phòng</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Số điện thoại</label>
+            <input type="text" class="form-control" id="mobilephone">
+        </div>
+        <div id="errorMsg" class="error-msg"></div>
+        <button type="submit" class="btn btn-success w-100">Đăng ký</button>
+    </form>
+    <div class="text-center mt-3">
+        <a href="/public_resources/login.html">Đã có tài khoản? Đăng nhập</a>
+    </div>
+</div>
+
+<script>
+    function isValidBirthday(birthdayStr) {
+        const today = new Date();
+        const dob = new Date(birthdayStr);
+        const age = today.getFullYear() - dob.getFullYear();
+        const m = today.getMonth() - dob.getMonth();
+        return (age > 18) || (age === 18 && m >= 0);
+    }
+
+    document.getElementById('registerForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const data = {
+            username: document.getElementById('username').value.trim(),
+            password: document.getElementById('password').value,
+            firstName: document.getElementById('firstName').value.trim(),
+            lastName: document.getElementById('lastName').value.trim(),
+            birthday: document.getElementById('birthday').value,
+            position: document.getElementById('position').value,
+            mobilephone: document.getElementById('mobilephone').value.trim(),
+            email: document.getElementById('email').value.trim()
+        };
+
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        const errorDiv = document.getElementById('errorMsg');
+
+        // Validate
+        if (data.password.length < 8) {
+            errorDiv.textContent = "Mật khẩu phải có ít nhất 8 ký tự.";
+            return;
+        }
+        if (data.password !== confirmPassword) {
+            errorDiv.textContent = "Mật khẩu xác nhận không khớp.";
+            return;
+        }
+        if (!isValidBirthday(data.birthday)) {
+            errorDiv.textContent = "Người dùng phải từ 18 tuổi trở lên.";
+            return;
+        }
+
+        errorDiv.textContent = "";
+
+        // Call API
+        fetch('/users', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        }).then(function (response) {
+            return response.json();
+        }).then(function (res) {
+            if (res.statusCode === 2000) { // SUCCESS
+                alert("Đăng ký thành công! Chuyển đến trang đăng nhập...");
+                window.location.href = "/public_resources/login.html";
+            } else {
+                errorDiv.textContent = res.message || "Đăng ký thất bại. Vui lòng thử lại.";
+            }
+        }).catch(function () {
+            errorDiv.textContent = "Lỗi kết nối máy chủ. Vui lòng thử lại.";
+        });
+
+    });
+</script>
+</body>
+</html>
