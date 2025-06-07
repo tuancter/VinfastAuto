@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import com.group2.VinfastAuto.dto.response.StatisticResponse;
 
 public interface CarService {
     CarResponse createCar(CarRequest request);
@@ -14,4 +15,5 @@ public interface CarService {
     CarResponse getCarById(Long carId);
     List<CarResponse> getAllCars();
     Page<CarResponse> searchCars(String keyword, Pageable pageable);
+    List<StatisticResponse> getCarCountByPriceRange();
 } 

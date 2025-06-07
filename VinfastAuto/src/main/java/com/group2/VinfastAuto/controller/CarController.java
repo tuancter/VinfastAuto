@@ -4,6 +4,7 @@ import com.group2.VinfastAuto.dto.request.CarRequest;
 import com.group2.VinfastAuto.dto.response.ApiResponse;
 import com.group2.VinfastAuto.dto.response.CarResponse;
 import com.group2.VinfastAuto.dto.response.PageResponse;
+import com.group2.VinfastAuto.dto.response.StatisticResponse;
 import com.group2.VinfastAuto.enums.StatusCode;
 import com.group2.VinfastAuto.service.CarService;
 import lombok.RequiredArgsConstructor;
@@ -84,6 +85,15 @@ public class CarController {
         return ApiResponse.<PageResponse<CarResponse>>builder()
                 .statusCode(StatusCode.SUCCESS.getCode())
                 .data(pageResponse)
+                .build();
+    }
+
+    @GetMapping("/statistics/by-price-range")
+    public ApiResponse<List<StatisticResponse>> getCarCountByPriceRange() {
+        List<StatisticResponse> stats = carService.getCarCountByPriceRange();
+        return ApiResponse.<List<StatisticResponse>>builder()
+                .statusCode(StatusCode.SUCCESS.getCode())
+                .data(stats)
                 .build();
     }
 } 

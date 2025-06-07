@@ -16,6 +16,7 @@
     <a href="#" onclick="loadUserList()"><i class="bi bi-people-fill"></i> Quản lý người dùng</a>
     <a href="#" onclick="loadCarList()"><i class="bi bi-truck-front-fill"></i> Quản lý xe ô tô</a>
     <a href="#" onclick="loadUserChart()"><i class="bi bi-bar-chart-fill"></i> Thống kê người dùng</a>
+    <a href="#" onclick="loadCarChart()"><i class="bi bi-bar-chart"></i> Thống kê xe ô tô</a>
     <a href="#" onclick="logout()"><i class="bi bi-box-arrow-right"></i> Đăng xuất</a>
 </div>
 
@@ -128,10 +129,20 @@
                         <div class="mb-3"><label class="form-label">Tên xe</label><input type="text" class="form-control" id="carName" required></div>
                         <div class="mb-3"><label class="form-label">Giá</label><input type="number" class="form-control" id="carPrice" required></div>
                         <div class="mb-3"><label class="form-label">Năm sản xuất</label><input type="number" class="form-control" id="carYear" required></div>
-                        <div class="mb-3"><label class="form-label">Tình trạng</label><input type="text" class="form-control" id="carState"></div>
+                        <div class="mb-3"><label class="form-label">Tình trạng</label>
+                        <select class="form-select" id="carState">
+                            <option value="Xe chưa dùng">Xe chưa dùng</option>
+                            <option value="Xe đã dùng">Xe đã dùng</option>
+                        </select></div>
                         <div class="mb-3"><label class="form-label">Số km đã đi</label><input type="number" class="form-control" id="carMileage"></div>
                         <div class="mb-3"><label class="form-label">Xuất xứ</label><input type="text" class="form-control" id="carOrigin"></div>
-                        <div class="mb-3"><label class="form-label">Loại xe</label><input type="text" class="form-control" id="carType"></div>
+                        <div class="mb-3"><label class="form-label">Loại xe</label>
+                        <select class="form-select" id="carType">
+                            <option value="Sedan">Sedan</option>
+                            <option value="SUV">SUV</option>
+                            <option value="Hatchback">Hatchback</option>
+                            <option value="Crossover">Crossover</option>
+                        </select></div>
                     </div>
                     <div class="col-md-6">
                         <div class="mb-3"><label class="form-label">Động cơ</label><input type="text" class="form-control" id="carEngine"></div>
@@ -139,12 +150,34 @@
                         <div class="mb-3"><label class="form-label">Màu nội thất</label><input type="text" class="form-control" id="carInteriorColor"></div>
                         <div class="mb-3"><label class="form-label">Số ghế</label><input type="number" class="form-control" id="carSeats"></div>
                         <div class="mb-3"><label class="form-label">Số cửa</label><input type="number" class="form-control" id="carDoors"></div>
+                        <div class="mb-3"><label class="form-label">Link ảnh</label><input type="text" class="form-control" id="carImgLink"></div>
+                        <div class="mb-3"><label class="form-label">Mô tả</label><textarea class="form-control" id="carDescription"></textarea></div>
                     </div>
                 </div>
                 <div class="modal-footer"><button type="submit" class="btn btn-primary">Lưu</button></div>
             </form>
         </div>
     </div>
+</div>
+
+<!-- Car Import Modal -->
+<div class="modal fade" id="carImportModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form id="carImportForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Nhập xe từ file</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="file" id="carImportFile" accept=".csv, .xlsx" required>
+        <div class="form-text">Chỉ hỗ trợ file CSV hoặc Excel (.xlsx)</div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Tải lên</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <div id="alertContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1050;"></div>

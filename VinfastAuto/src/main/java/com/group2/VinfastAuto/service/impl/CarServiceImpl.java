@@ -2,6 +2,7 @@ package com.group2.VinfastAuto.service.impl;
 
 import com.group2.VinfastAuto.dto.request.CarRequest;
 import com.group2.VinfastAuto.dto.response.CarResponse;
+import com.group2.VinfastAuto.dto.response.StatisticResponse;
 import com.group2.VinfastAuto.entity.Car;
 import com.group2.VinfastAuto.mapper.CarMapper;
 import com.group2.VinfastAuto.repository.CarRepository;
@@ -55,5 +56,33 @@ public class CarServiceImpl implements CarService {
         Page<Car> page = carRepository.findAll(pageable); // Có thể custom lại search theo keyword
         List<CarResponse> responses = page.getContent().stream().map(carMapper::toResponse).collect(Collectors.toList());
         return new PageImpl<>(responses, pageable, page.getTotalElements());
+    }
+
+    @Override
+    public List<StatisticResponse> getCarCountByPriceRange() {
+        List<Car> cars = carRepository.findAll();
+        int[] ranges = {0, 100_000_000, 200_000_000, 300_000_000, 400_000_000, 500_000_000, 600_000_000, 700_000_000, 800_000_000, 900_000_000, 1_000_000_000};
+        String[] labels = {"0 - 100tr", "100tr - 200tr", "200tr - 300tr", "300tr - 400tr", "400tr - 500tr", "500tr - 600tr", "600tr - 700tr", "700tr - 800tr", "800tr - 900tr", "900tr - 1tỷ", "> 1tỷ"};
+        int[] counts = new int[labels.length];
+        for (Car car : cars) {
+            if (car.getPrice() == null) continue;
+            long price = car.getPrice().longValue();
+            boolean found = false;
+            for (int i = 0; i < ranges.length - 1; i++) {
+                if (price >= ranges[i] && price < ranges[i+1]) {
+                    counts[i]++;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found && price >= ranges[ranges.length-1]) {
+                counts[labels.length-1]++;
+            }
+        }
+        List<StatisticResponse> result = new java.util.ArrayList<>();
+        for (int i = 0; i < labels.length; i++) {
+            result.add(new StatisticResponse(labels[i], counts[i]));
+        }
+        return result;
     }
 } 

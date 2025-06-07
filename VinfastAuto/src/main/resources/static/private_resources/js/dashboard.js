@@ -219,7 +219,7 @@ function renderUserTable() {
         let html = `
 <div class="mb-3 d-flex justify-content-between align-items-center">
     <div class="d-flex">
-        <input style="width: 500px" type="text" id="searchInput" class="form-control me-2" placeholder="Tìm theo username..." value="${currentSearch}">
+        <input style="width: 400px" type="text" id="searchInput" class="form-control me-2" placeholder="Tìm theo username..." value="${currentSearch}">
         <button class="btn btn-primary me-2" onclick="searchUsers()"><i class="bi bi-search"></i></button>
         ${currentSearch ? `<button class="btn btn-secondary" onclick="clearSearch()"><i class="bi bi-x"></i></button>` : ""}
         <button class="btn btn-success ms-2" onclick="openCreateUserModal()"><i class="bi bi-person-plus-fill"></i></button>
@@ -904,6 +904,7 @@ document.getElementById("roleForm").addEventListener("submit", function (e) {
 // ========== Quản lý xe ô tô (phân trang, tìm kiếm, sắp xếp, CRUD) ==========
 let currentCarPage = 0, carItemsPerPage = 10;
 let carSearch = "", carSort = "name", carDirection = "asc";
+let carSearchResults = null;
 
 function loadCarList() {
     $('#pageTitle').text('Quản lý xe ô tô');
@@ -953,7 +954,62 @@ function goToCarPage(page) {
     renderCarTable();
 }
 
+function formatCurrency(value) {
+    if (value == null || isNaN(value)) return '';
+    return Number(value).toLocaleString('vi-VN') + 'đ';
+}
+
 function renderCarTable() {
+    if (carSearchResults !== null) {
+        // Phân trang client cho kết quả tìm kiếm
+        const total = carSearchResults.length;
+        const totalPages = Math.ceil(total / carItemsPerPage);
+        const start = currentCarPage * carItemsPerPage;
+        const end = start + carItemsPerPage;
+        const cars = carSearchResults.slice(start, end);
+        let html = `
+<div class="mb-3 d-flex justify-content-between align-items-center">
+    <div class="d-flex">
+        <input style="width: 400px" type="text" id="carSearchInput" class="form-control me-2" placeholder="Tìm theo tên xe..." value="${carSearch}">
+        <button class="btn btn-primary me-2" onclick="searchCars()"><i class="bi bi-search"></i></button>
+        ${carSearch ? `<button class="btn btn-secondary" onclick="clearCarSearch()"><i class="bi bi-x"></i></button>` : ""}
+        <button class="btn btn-success ms-2" onclick="showCarModal('create')"><i class="bi bi-plus-circle"></i></button>
+    </div>
+    <div>
+        <button class="btn btn-outline-primary me-2" onclick="openCarImportModal()"><i class="bi bi-upload"></i> Nhập file</button>
+        <button class="btn btn-outline-secondary me-2" onclick="exportCars('csv')"><i class="bi bi-download"></i> Xuất CSV</button>
+        <button class="btn btn-outline-success" onclick="exportCars('excel')"><i class="bi bi-file-earmark-excel"></i> Xuất Excel</button>
+    </div>
+</div>
+<div class="mb-2 d-flex align-items-center">
+            <label class="me-2 mb-0">Sắp xếp theo:</label>
+            <select onchange="changeCarSort(this.value)" class="form-select w-auto me-3">
+                <option value="name" ${carSort === 'name' ? 'selected' : ''}>Tên xe</option>
+                <option value="price" ${carSort === 'price' ? 'selected' : ''}>Giá</option>
+                <option value="manufacturedYear" ${carSort === 'manufacturedYear' ? 'selected' : ''}>Năm SX</option>
+            </select>
+            <select onchange="changeCarDirection(this.value)" class="form-select w-auto">
+                <option value="asc" ${carDirection === 'asc' ? 'selected' : ''}>Tăng dần</option>
+                <option value="desc" ${carDirection === 'desc' ? 'selected' : ''}>Giảm dần</option>
+            </select>
+        </div>
+<table class="table table-bordered table-hover"><thead><tr>
+    <th>Tên xe</th><th>Giá</th><th>Năm SX</th><th>Tình trạng</th><th>Km đã đi</th><th>Xuất xứ</th><th>Loại xe</th><th>Động cơ</th><th>Màu ngoại thất</th><th>Màu nội thất</th><th>Ghế</th><th>Cửa</th><th>Hành động</th>
+</tr></thead><tbody>`;
+        cars.forEach(car => {
+            html += `<tr>
+                <td>${car.name}</td><td>${formatCurrency(car.price)}</td><td>${car.manufacturedYear}</td><td>${car.state||''}</td><td>${car.mileage||''}</td><td>${car.origin||''}</td><td>${car.vehicleType||''}</td><td>${car.engine||''}</td><td>${car.exteriorColor||''}</td><td>${car.interiorColor||''}</td><td>${car.seats||''}</td><td>${car.doors||''}</td>
+                <td>
+                    <button class='btn btn-sm btn-primary' onclick='showCarModal("edit",${JSON.stringify(car)})'><i class='bi bi-pencil'></i></button>
+                    <button class='btn btn-sm btn-danger' onclick='deleteCar(${car.carId})'><i class='bi bi-trash'></i></button>
+                </td>
+            </tr>`;
+        });
+        html += '</tbody></table>' + renderCarPagination(totalPages);
+        $('#carContent').html(html);
+        return;
+    }
+    // Nếu không phải search, gọi API phân trang như cũ
     fetchCars(currentCarPage, carItemsPerPage, carSearch, carSort, carDirection)
     .then(data => {
         if (!data) return;
@@ -968,24 +1024,29 @@ function renderCarTable() {
         <button class="btn btn-success ms-2" onclick="showCarModal('create')"><i class="bi bi-plus-circle"></i></button>
     </div>
     <div>
-        <label class="me-2 mb-0">Sắp xếp theo:</label>
-        <select onchange="changeCarSort(this.value)" class="form-select w-auto me-3">
-            <option value="name" ${carSort === 'name' ? 'selected' : ''}>Tên xe</option>
-            <option value="price" ${carSort === 'price' ? 'selected' : ''}>Giá</option>
-            <option value="manufacturedYear" ${carSort === 'manufacturedYear' ? 'selected' : ''}>Năm SX</option>
-        </select>
-        <select onchange="changeCarDirection(this.value)" class="form-select w-auto">
-            <option value="asc" ${carDirection === 'asc' ? 'selected' : ''}>Tăng dần</option>
-            <option value="desc" ${carDirection === 'desc' ? 'selected' : ''}>Giảm dần</option>
-        </select>
+        <button class="btn btn-outline-primary me-2" onclick="openCarImportModal()"><i class="bi bi-upload"></i> Nhập file</button>
+        <button class="btn btn-outline-secondary me-2" onclick="exportCars('csv')"><i class="bi bi-download"></i> Xuất CSV</button>
+        <button class="btn btn-outline-success" onclick="exportCars('excel')"><i class="bi bi-file-earmark-excel"></i> Xuất Excel</button>
     </div>
 </div>
+<div class="mb-2 d-flex align-items-center">
+            <label class="me-2 mb-0">Sắp xếp theo:</label>
+            <select onchange="changeCarSort(this.value)" class="form-select w-auto me-3">
+                <option value="name" ${carSort === 'name' ? 'selected' : ''}>Tên xe</option>
+                <option value="price" ${carSort === 'price' ? 'selected' : ''}>Giá</option>
+                <option value="manufacturedYear" ${carSort === 'manufacturedYear' ? 'selected' : ''}>Năm SX</option>
+            </select>
+            <select onchange="changeCarDirection(this.value)" class="form-select w-auto">
+                <option value="asc" ${carDirection === 'asc' ? 'selected' : ''}>Tăng dần</option>
+                <option value="desc" ${carDirection === 'desc' ? 'selected' : ''}>Giảm dần</option>
+            </select>
+        </div>
 <table class="table table-bordered table-hover"><thead><tr>
     <th>Tên xe</th><th>Giá</th><th>Năm SX</th><th>Tình trạng</th><th>Km đã đi</th><th>Xuất xứ</th><th>Loại xe</th><th>Động cơ</th><th>Màu ngoại thất</th><th>Màu nội thất</th><th>Ghế</th><th>Cửa</th><th>Hành động</th>
 </tr></thead><tbody>`;
         cars.forEach(car => {
             html += `<tr>
-                <td>${car.name}</td><td>${car.price}</td><td>${car.manufacturedYear}</td><td>${car.state||''}</td><td>${car.mileage||''}</td><td>${car.origin||''}</td><td>${car.vehicleType||''}</td><td>${car.engine||''}</td><td>${car.exteriorColor||''}</td><td>${car.interiorColor||''}</td><td>${car.seats||''}</td><td>${car.doors||''}</td>
+                <td>${car.name}</td><td>${formatCurrency(car.price)}</td><td>${car.manufacturedYear}</td><td>${car.state||''}</td><td>${car.mileage||''}</td><td>${car.origin||''}</td><td>${car.vehicleType||''}</td><td>${car.engine||''}</td><td>${car.exteriorColor||''}</td><td>${car.interiorColor||''}</td><td>${car.seats||''}</td><td>${car.doors||''}</td>
                 <td>
                     <button class='btn btn-sm btn-primary' onclick='showCarModal("edit",${JSON.stringify(car)})'><i class='bi bi-pencil'></i></button>
                     <button class='btn btn-sm btn-danger' onclick='deleteCar(${car.carId})'><i class='bi bi-trash'></i></button>
@@ -998,13 +1059,43 @@ function renderCarTable() {
 }
 
 function searchCars() {
-    carSearch = $('#carSearchInput').val().trim();
+    const searchInput = document.getElementById("carSearchInput").value.trim().toLowerCase();
+    carSearch = searchInput;
     currentCarPage = 0;
-    renderCarTable();
+    // Nếu không có từ khoá, reset về fetch bình thường
+    if (!carSearch) {
+        carSearchResults = null;
+        renderCarTable();
+        return;
+    }
+    // Lấy toàn bộ xe từ backend (tối đa 10000 bản ghi)
+    showSpinner();
+    fetchCars(0, 10000, "", carSort, carDirection)
+    .then(data => {
+        hideSpinner();
+        if (!data || !data.data || !data.data.content) {
+            carSearchResults = [];
+            renderCarTable();
+            return;
+        }
+        // Lọc theo tên xe
+        const allCars = data.data.content;
+        const filtered = allCars.filter(car => car.name && car.name.toLowerCase().includes(carSearch));
+        carSearchResults = filtered;
+        if (filtered.length === 0) {
+            showAlert('Không tìm thấy xe nào phù hợp!', 'warning');
+        }
+        renderCarTable();
+    })
+    .catch(() => {
+        hideSpinner();
+        showAlert('Lỗi khi tìm kiếm xe!', 'danger');
+    });
 }
 
 function clearCarSearch() {
     carSearch = "";
+    carSearchResults = null;
     currentCarPage = 0;
     $('#carSearchInput').val("");
     renderCarTable();
@@ -1040,6 +1131,8 @@ function showCarModal(mode, car) {
         $('#carInteriorColor').val(car.interiorColor);
         $('#carSeats').val(car.seats);
         $('#carDoors').val(car.doors);
+        $('#carImgLink').val(car.imgLink);
+        $('#carDescription').val(car.description);
     } else {
         $('#carModalLabel').text('Thêm xe ô tô');
         $('#carId').val('');
@@ -1065,7 +1158,9 @@ function handleCarFormSubmit(e) {
         exteriorColor: $('#carExteriorColor').val(),
         interiorColor: $('#carInteriorColor').val(),
         seats: $('#carSeats').val(),
-        doors: $('#carDoors').val()
+        doors: $('#carDoors').val(),
+        imgLink: $('#carImgLink').val(),
+        description: $('#carDescription').val()
     };
     showSpinner();
     let url = '/cars', method = 'POST';
@@ -1114,4 +1209,294 @@ function deleteCar(carId) {
         })
         .catch(()=>{ hideSpinner(); showAlert('Lỗi kết nối máy chủ!','danger'); });
     }
+}
+
+function loadCarChart() {
+    document.getElementById("pageTitle").innerText = "Thống kê xe ô tô";
+    document.getElementById("mainContent").innerHTML = `
+        <div class="chart-container">
+            <h5>Thống kê số lượng xe theo khoảng giá</h5>
+            <div class="mb-2 d-flex align-items-center">
+                <select id="carChartStyleSelect" class="form-select w-auto me-2" onchange="updateCarChart()">
+                    <option value="bar">Cột</option>
+                    <option value="pie">Tròn</option>
+                    <option value="doughnut">Doughnut</option>
+                    <option value="line">Đường</option>
+                </select>
+                <button class="btn btn-outline-success ms-2" onclick="downloadCarChartImage()">
+                    <i class="bi bi-download"></i> Tải ảnh biểu đồ
+                </button>
+            </div>
+            <canvas id="carChart" width="350" height="180"></canvas>
+        </div>
+    `;
+    $('#carContent').hide();
+    $('#mainContent').show();
+    renderCarChart();
+}
+
+let carChartInstance = null;
+function renderCarChart(chartStyle = "bar") {
+    const ctx = document.getElementById("carChart");
+    if (!ctx) return;
+    showSpinner();
+    fetch("/cars/statistics/by-price-range", {
+        headers: { "Authorization": "Bearer " + getToken() }
+    })
+    .then(res => res.json())
+    .then(result => {
+        hideSpinner();
+        if (!result || !result.data) {
+            showAlert("Không có dữ liệu thống kê xe.", "warning");
+            return;
+        }
+        const labels = result.data.map(item => item.key);
+        const dataSet = result.data.map(item => item.count);
+        const backgroundColors = [
+            "#4e79a7", "#f28e2b", "#e15759", "#76b7b2", "#59a14f", "#edc949",
+            "#af7aa1", "#ff9da7", "#9c755f", "#bab0ab", "#86b7fe", "#ffc107"
+        ];
+        if (carChartInstance) carChartInstance.destroy();
+        carChartInstance = new Chart(ctx, {
+            type: chartStyle,
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: "Số lượng xe",
+                    data: dataSet,
+                    backgroundColor: chartStyle === "bar" || chartStyle === "line"
+                        ? "rgba(54, 162, 235, 0.6)"
+                        : backgroundColors,
+                    borderColor: chartStyle === "bar" || chartStyle === "line"
+                        ? "rgba(54, 162, 235, 1)"
+                        : "#fff",
+                    borderWidth: 1,
+                    fill: chartStyle === "line",
+                    tension: chartStyle === "line" ? 0.4 : 0
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: "Thống kê số lượng xe theo khoảng giá",
+                        font: { size: 18 }
+                    },
+                    legend: {
+                        display: chartStyle !== "bar" && chartStyle !== "line",
+                        position: "bottom"
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                if (chartStyle === "pie" || chartStyle === "doughnut") {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const value = context.parsed;
+                                    const percent = ((value / total) * 100).toFixed(1);
+                                    return `${context.label}: ${value} (${percent}%)`;
+                                }
+                                return `${context.label}: ${context.parsed.y ?? context.parsed}`;
+                            }
+                        }
+                    }
+                },
+                scales: (chartStyle === "bar" || chartStyle === "line") ? {
+                    x: { beginAtZero: true, grid: { display: false } },
+                    y: { beginAtZero: true, precision: 0 }
+                } : {}
+            }
+        });
+    })
+    .catch(() => {
+        hideSpinner();
+        showAlert("Lỗi kết nối máy chủ. Không thể tải dữ liệu thống kê xe.", "danger");
+    });
+}
+
+function updateCarChart() {
+    const chartStyle = document.getElementById("carChartStyleSelect").value;
+    renderCarChart(chartStyle);
+}
+
+function downloadCarChartImage() {
+    if (!carChartInstance) {
+        showAlert("Chưa có biểu đồ để xuất.", "warning");
+        return;
+    }
+    const link = document.createElement("a");
+    link.href = carChartInstance.toBase64Image();
+    link.download = "car_chart.png";
+    link.click();
+}
+
+function openCarImportModal() {
+    document.getElementById("carImportForm").reset();
+    new bootstrap.Modal(document.getElementById("carImportModal")).show();
+}
+
+document.getElementById("carImportForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    const fileInput = document.getElementById("carImportFile");
+    if (!fileInput.files.length) {
+        showAlert("Vui lòng chọn file.", "warning");
+        return;
+    }
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        let cars = [];
+        if (file.name.endsWith(".csv")) {
+            // Parse CSV
+            const text = event.target.result;
+            cars = parseCSVCars(text);
+        } else if (file.name.endsWith(".xlsx")) {
+            // Parse Excel
+            const data = new Uint8Array(event.target.result);
+            const workbook = XLSX.read(data, { type: "array" });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            cars = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+        } else {
+            showAlert("Định dạng file không hỗ trợ.", "danger");
+            return;
+        }
+        importCarsBatch(cars);
+    };
+    if (file.name.endsWith(".csv")) {
+        reader.readAsText(file, "UTF-8");
+    } else {
+        reader.readAsArrayBuffer(file);
+    }
+});
+
+function parseCSVCars(csvText) {
+    const lines = csvText.split(/\r?\n/).filter(line => line.trim());
+    if (lines.length < 2) return [];
+    const headers = lines[0].split(",").map(h => h.trim());
+    return lines.slice(1).map(line => {
+        const values = line.split(",");
+        const obj = {};
+        headers.forEach((h, i) => obj[h] = values[i] ? values[i].trim() : "");
+        return obj;
+    });
+}
+
+function importCarsBatch(cars) {
+    if (!Array.isArray(cars) || cars.length === 0) {
+        showAlert("Không có dữ liệu hợp lệ.", "warning");
+        return;
+    }
+    let success = 0, fail = 0;
+    let done = 0;
+    showSpinner();
+    cars.forEach(car => {
+        // Map field cho đúng backend
+        const data = {
+            name: car.name || car["Tên xe"] || "",
+            price: car.price || car["Giá"] || 0,
+            manufacturedYear: car.manufacturedYear || car["Năm sản xuất"] || "",
+            state: car.state || car["Tình trạng"] || "",
+            mileage: car.mileage || car["Số km đã đi"] || "",
+            origin: car.origin || car["Xuất xứ"] || "",
+            vehicleType: car.vehicleType || car["Loại xe"] || "",
+            engine: car.engine || car["Động cơ"] || "",
+            exteriorColor: car.exteriorColor || car["Màu ngoại thất"] || "",
+            interiorColor: car.interiorColor || car["Màu nội thất"] || "",
+            seats: car.seats || car["Số ghế"] || "",
+            doors: car.doors || car["Số cửa"] || "",
+            imgLink: car.imgLink || car["Link ảnh"] || "",
+            description: car.description || car["Mô tả"] || ""
+        };
+        fetch("/cars", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + getToken()
+            },
+            body: JSON.stringify(data)
+        })
+        .then(handleUnauthorized)
+        .then(res => {
+            if (res && res.statusCode === 2000) {
+                success++;
+            } else fail++;
+        })
+        .catch(() => { fail++; })
+        .finally(() => {
+            done++;
+            if (done === cars.length) finishCarImport(success, fail);
+        });
+    });
+}
+
+function finishCarImport(success, fail) {
+    hideSpinner();
+    showAlert(`Nhập thành công ${success} xe. Thất bại: ${fail}.`, success > 0 ? "success" : "danger");
+    bootstrap.Modal.getInstance(document.getElementById("carImportModal")).hide();
+    if (success > 0) {
+        carSearchResults = null;
+        renderCarTable();
+    }
+}
+
+function exportCars(type) {
+    showSpinner();
+    // Lấy toàn bộ xe (không phân trang)
+    fetchCars(0, 10000, "", carSort, carDirection)
+    .then(data => {
+        hideSpinner();
+        if (!data || !data.data || !data.data.content) {
+            showAlert("Không có dữ liệu để xuất.", "warning");
+            return;
+        }
+        const cars = data.data.content;
+        if (type === "csv") {
+            exportCarsToCSV(cars);
+        } else {
+            exportCarsToExcel(cars);
+        }
+    });
+}
+
+function exportCarsToCSV(cars) {
+    const headers = [
+        "carId", "name", "price", "manufacturedYear", "state", "mileage", "origin", "vehicleType", "engine", "exteriorColor", "interiorColor", "seats", "doors", "imgLink", "description"
+    ];
+    const csvRows = [
+        headers.join(","),
+        ...cars.map(c => headers.map(h => `"${(c[h] || "").toString().replace(/"/g, '""')}"`).join(","))
+    ];
+    const blob = new Blob([csvRows.join("\r\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "cars.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+}
+
+function exportCarsToExcel(cars) {
+    const headers = [
+        "carId", "name", "price", "manufacturedYear", "state", "mileage", "origin", "vehicleType", "engine", "exteriorColor", "interiorColor", "seats", "doors", "imgLink", "description"
+    ];
+    const data = cars.map(c => {
+        const obj = {};
+        headers.forEach(h => obj[h] = c[h] || "");
+        return obj;
+    });
+    const ws = XLSX.utils.json_to_sheet(data, { header: headers });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Cars");
+    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([wbout], { type: "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "cars.xlsx";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
 }
