@@ -46,3 +46,23 @@ CREATE TABLE users_roles (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
 );
+
+-- Bảng cars
+CREATE TABLE cars (
+    car_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    price DECIMAL(15,2) NOT NULL,
+    manufactured_year SMALLINT UNSIGNED NOT NULL,
+    state VARCHAR(50) NOT NULL,
+    mileage INT UNSIGNED NOT NULL,
+    origin VARCHAR(100) NOT NULL,
+    vehicle_type VARCHAR(50) NOT NULL,
+    engine VARCHAR(50) NOT NULL,
+    exterior_color VARCHAR(50) NOT NULL,
+    interior_color VARCHAR(50) NOT NULL,
+    seats TINYINT UNSIGNED NOT NULL,
+    doors TINYINT UNSIGNED NOT NULL,
+    img_link TEXT NOT NULL,
+    description TEXT
+);
+
