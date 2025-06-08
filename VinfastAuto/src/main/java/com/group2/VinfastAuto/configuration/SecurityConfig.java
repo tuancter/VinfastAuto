@@ -20,6 +20,7 @@ public class SecurityConfig {
     private static final String[] PUBLIC_ENDPOINTS = {"/auth/**", "/users"};
     private static final String[] PUBLIC_RESOURCES = {"/public_resources/**", "/libs/**"};
     private static final String[] PRIVATE_RESOURCES = {"/private_resources/**"};
+    private static final String[] LOGIN_RESOURCES = {"/"};
 
     CustomJwtDecoder customJwtDecoder;
     CorsConfigurationSource corsConfigurationSource;
@@ -36,6 +37,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(request -> request
                         .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
                         .requestMatchers(HttpMethod.GET, PUBLIC_RESOURCES).permitAll()
+                        .requestMatchers(HttpMethod.GET, LOGIN_RESOURCES).permitAll()
 //                        .requestMatchers(HttpMethod.GET, PRIVATE_RESOURCES).hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, PRIVATE_RESOURCES).permitAll()
                         .anyRequest().authenticated()

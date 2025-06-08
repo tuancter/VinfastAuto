@@ -961,12 +961,34 @@ function formatCurrency(value) {
 
 function renderCarTable() {
     if (carSearchResults !== null) {
-        // Phân trang client cho kết quả tìm kiếm
-        const total = carSearchResults.length;
+        // Sắp xếp client-side
+        let sortedCars = [...carSearchResults];
+        if (carSort === 'name') {
+            sortedCars.sort((a, b) => {
+                if (!a.name) return 1;
+                if (!b.name) return -1;
+                return carDirection === 'asc'
+                    ? a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' })
+                    : b.name.localeCompare(a.name, 'vi', { sensitivity: 'base' });
+            });
+        } else if (carSort === 'price') {
+            sortedCars.sort((a, b) => {
+                let pa = Number(a.price) || 0;
+                let pb = Number(b.price) || 0;
+                return carDirection === 'asc' ? pa - pb : pb - pa;
+            });
+        } else if (carSort === 'manufacturedYear') {
+            sortedCars.sort((a, b) => {
+                let ya = Number(a.manufacturedYear) || 0;
+                let yb = Number(b.manufacturedYear) || 0;
+                return carDirection === 'asc' ? ya - yb : yb - ya;
+            });
+        }
+        const total = sortedCars.length;
         const totalPages = Math.ceil(total / carItemsPerPage);
         const start = currentCarPage * carItemsPerPage;
         const end = start + carItemsPerPage;
-        const cars = carSearchResults.slice(start, end);
+        const cars = sortedCars.slice(start, end);
         let html = `
 <div class="mb-3 d-flex justify-content-between align-items-center">
     <div class="d-flex">

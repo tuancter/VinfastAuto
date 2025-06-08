@@ -72,10 +72,12 @@ public class CarController {
     public ApiResponse<PageResponse<CarResponse>> searchCars(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "name") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction
     ) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<CarResponse> result = carService.searchCars(keyword, pageable);
+        Page<CarResponse> result = carService.searchCars(keyword, sortBy, direction, pageable);
         PageResponse<CarResponse> pageResponse = new PageResponse<>();
         pageResponse.setContent(result.getContent());
         pageResponse.setTotalElements(result.getTotalElements());

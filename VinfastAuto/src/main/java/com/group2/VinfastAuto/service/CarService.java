@@ -14,6 +14,6 @@ public interface CarService {
     void deleteCar(Long carId);
     CarResponse getCarById(Long carId);
     List<CarResponse> getAllCars();
-    Page<CarResponse> searchCars(String keyword, Pageable pageable);
+    Page<CarResponse> searchCars(String keyword, String sortBy, String direction, Pageable pageable);
     List<StatisticResponse> getCarCountByPriceRange();
 } 

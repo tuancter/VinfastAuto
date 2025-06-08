@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -52,10 +54,38 @@ public class CarServiceImpl implements CarService {
     }
 
     @Override
-    public Page<CarResponse> searchCars(String keyword, Pageable pageable) {
-        Page<Car> page = carRepository.findAll(pageable); // Có thể custom lại search theo keyword
+    public Page<CarResponse> searchCars(String keyword, String sortBy, String direction, Pageable pageable) {
+        // Xác định trường sort hợp lệ
+        final String sortField = "price".equalsIgnoreCase(sortBy) ? "price" :
+                ("manufacturedYear".equalsIgnoreCase(sortBy) ? "manufacturedYear" : "name");
+        // Xác định chiều sort
+        Sort sort = "desc".equalsIgnoreCase(direction) ? Sort.by(sortField).descending() : Sort.by(sortField).ascending();
+        Pageable sortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
+        Page<Car> page;
+        if (keyword == null || keyword.isBlank()) {
+            page = carRepository.findAll(sortedPageable);
+        } else {
+            List<Car> filtered = carRepository.findAll().stream()
+                .filter(car -> car.getName() != null && car.getName().toLowerCase().contains(keyword.toLowerCase()))
+                .collect(Collectors.toList());
+            filtered.sort((a, b) -> {
+                int cmp = 0;
+                if ("name".equals(sortField)) {
+                    cmp = a.getName().compareToIgnoreCase(b.getName());
+                } else if ("price".equals(sortField)) {
+                    cmp = a.getPrice() == null ? 1 : b.getPrice() == null ? -1 : a.getPrice().compareTo(b.getPrice());
+                } else if ("manufacturedYear".equals(sortField)) {
+                    cmp = a.getManufacturedYear() == null ? 1 : b.getManufacturedYear() == null ? -1 : a.getManufacturedYear().compareTo(b.getManufacturedYear());
+                }
+                return "desc".equalsIgnoreCase(direction) ? -cmp : cmp;
+            });
+            int start = (int) sortedPageable.getOffset();
+            int end = Math.min(start + sortedPageable.getPageSize(), filtered.size());
+            List<Car> pageContent = start > end ? List.of() : filtered.subList(start, end);
+            page = new PageImpl<>(pageContent, sortedPageable, filtered.size());
+        }
         List<CarResponse> responses = page.getContent().stream().map(carMapper::toResponse).collect(Collectors.toList());
-        return new PageImpl<>(responses, pageable, page.getTotalElements());
+        return new PageImpl<>(responses, sortedPageable, page.getTotalElements());
     }
 
     @Override
