@@ -11,13 +11,29 @@
 
 <!-- Sidebar -->
 <div class="sidebar">
-    <h4>Quản trị hệ thống</h4>
-    <a href="#" onclick="loadWelcome()"><i class="bi bi-house-door-fill"></i> Trang chào mừng</a>
-    <a href="#" onclick="loadUserList()"><i class="bi bi-people-fill"></i> Quản lý người dùng</a>
-    <a href="#" onclick="loadCarList()"><i class="bi bi-truck-front-fill"></i> Quản lý xe ô tô</a>
-    <a href="#" onclick="loadUserChart()"><i class="bi bi-bar-chart-fill"></i> Thống kê người dùng</a>
-    <a href="#" onclick="loadCarChart()"><i class="bi bi-bar-chart"></i> Thống kê xe ô tô</a>
-    <a href="#" onclick="logout()"><i class="bi bi-box-arrow-right"></i> Đăng xuất</a>
+    <h4 class="sidebar-title">Quản trị hệ thống</h4>
+    <div class="sidebar-group">
+        <a class="sidebar-parent" id="parent-user" href="#">
+            <span><i class="bi bi-people-fill"></i> Quản lý người dùng</span>
+            <i class="bi bi-chevron-right chevron" id="chevron-user"></i>
+        </a>
+        <div class="sidebar-collapse" id="collapse-user">
+            <a href="#" class="sidebar-child" id="menu-user-list"><i class="bi bi-list-ul"></i> Danh sách người dùng</a>
+            <a href="#" class="sidebar-child" id="menu-user-stats"><i class="bi bi-bar-chart-fill"></i> Thống kê người dùng</a>
+        </div>
+    </div>
+    <div class="sidebar-group">
+        <a class="sidebar-parent" id="parent-car" href="#">
+            <span><i class="bi bi-truck-front-fill"></i> Quản lý xe ô tô</span>
+            <i class="bi bi-chevron-right chevron" id="chevron-car"></i>
+        </a>
+        <div class="sidebar-collapse" id="collapse-car">
+            <a href="#" class="sidebar-child" id="menu-car-list"><i class="bi bi-list-ul"></i> Danh sách xe ô tô</a>
+            <a href="#" class="sidebar-child" id="menu-car-stats"><i class="bi bi-bar-chart-fill"></i> Thống kê xe ô tô</a>
+        </div>
+    </div>
+    <a href="#" class="sidebar-link" id="menu-welcome"><i class="bi bi-house-door-fill"></i> Trang chào mừng</a>
+    <a href="#" class="sidebar-link" id="menu-logout"><i class="bi bi-box-arrow-right"></i> Đăng xuất</a>
 </div>
 
 <!-- Main Content -->
@@ -188,5 +204,65 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="/private_resources/js/dashboard.js"></script>
+
+<!-- Thêm CSS cho icon xoay và active -->
+<style>
+.sidebar .sidebar-parent {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding: 10px 16px;
+    font-weight: 500;
+    color: #222;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+.sidebar .sidebar-parent.active, .sidebar .sidebar-child.active, .sidebar-link.active {
+    background: #e9ecef;
+    color: #0d6efd;
+    font-weight: bold;
+}
+.sidebar .sidebar-child {
+    display: flex;
+    align-items: center;
+    padding: 8px 32px;
+    color: #222;
+    text-decoration: none;
+    transition: background 0.2s;
+    cursor: pointer;
+}
+.sidebar .sidebar-child i {
+    margin-right: 8px;
+}
+.sidebar .sidebar-collapse {
+    display: none;
+    flex-direction: column;
+}
+.sidebar .sidebar-collapse.open {
+    display: flex;
+}
+.chevron {
+    transition: transform 0.2s;
+}
+.chevron.open {
+    transform: rotate(90deg);
+}
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    color: #222;
+    text-decoration: none;
+    transition: background 0.2s;
+    cursor: pointer;
+}
+.sidebar-title {
+    font-weight: bold;
+    color: #0d6efd;
+    padding: 16px 16px 8px 16px;
+    font-size: 1.2rem;
+}
+</style>
 </body>
 </html>

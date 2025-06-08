@@ -111,6 +111,7 @@ function loadWelcome() {
     document.getElementById("mainContent").innerHTML = "<p>Chào mừng bạn đến với hệ thống quản lý người dùng.</p>";
     $('#carContent').hide();
     $('#mainContent').show();
+    setActiveMenu('menu-welcome');
 }
 
 // ================== QUẢN LÝ NGƯỜI DÙNG (CRUD, TÌM KIẾM, PHÂN TRANG) ==================
@@ -1522,3 +1523,110 @@ function exportCarsToExcel(cars) {
     a.remove();
     URL.revokeObjectURL(url);
 }
+
+// Sidebar menu logic chuyên nghiệp
+function closeAllMenus() {
+    document.querySelectorAll('.sidebar-collapse').forEach(div => div.classList.remove('open'));
+    document.querySelectorAll('.chevron').forEach(ic => ic.classList.remove('open'));
+    document.querySelectorAll('.sidebar-parent').forEach(parent => parent.classList.remove('active'));
+}
+function setActiveMenu(menuId) {
+    // Xóa active khỏi tất cả menu con và link đơn
+    document.querySelectorAll('.sidebar-child, .sidebar-link').forEach(el => el.classList.remove('active'));
+    // Đánh dấu active cho menu con hoặc link đơn
+    const activeItem = document.getElementById(menuId);
+    if (activeItem) {
+        activeItem.classList.add('active');
+        // Nếu là menu con, mở menu cha và xoay icon
+        if (activeItem.classList.contains('sidebar-child')) {
+            const parentCollapse = activeItem.closest('.sidebar-collapse');
+            if (parentCollapse) {
+                parentCollapse.classList.add('open');
+                const parentLink = parentCollapse.previousElementSibling;
+                if (parentLink && parentLink.classList.contains('sidebar-parent')) {
+                    parentLink.classList.add('active');
+                    const icon = parentLink.querySelector('.chevron');
+                    if (icon) icon.classList.add('open');
+                }
+            }
+        }
+    }
+    // Đảm bảo chỉ menu cha chứa menu con active được mở
+    document.querySelectorAll('.sidebar-group').forEach(group => {
+        const collapse = group.querySelector('.sidebar-collapse');
+        const parent = group.querySelector('.sidebar-parent');
+        const chevron = group.querySelector('.chevron');
+        if (collapse && parent && chevron) {
+            if (!collapse.contains(document.querySelector('.sidebar-child.active'))) {
+                collapse.classList.remove('open');
+                parent.classList.remove('active');
+                chevron.classList.remove('open');
+            }
+        }
+    });
+}
+function setupSidebarMenu() {
+    // Menu cha toggle
+    document.querySelectorAll('.sidebar-parent').forEach(parent => {
+        parent.addEventListener('click', function(e) {
+            e.preventDefault();
+            const collapse = parent.nextElementSibling;
+            const chevron = parent.querySelector('.chevron');
+            const isOpen = collapse.classList.contains('open');
+            // Đóng tất cả menu cha khác
+            document.querySelectorAll('.sidebar-collapse').forEach(div => {
+                if (div !== collapse) div.classList.remove('open');
+            });
+            document.querySelectorAll('.chevron').forEach(ic => {
+                if (ic !== chevron) ic.classList.remove('open');
+            });
+            document.querySelectorAll('.sidebar-parent').forEach(p => {
+                if (p !== parent) p.classList.remove('active');
+            });
+            // Toggle menu này
+            if (isOpen) {
+                collapse.classList.remove('open');
+                chevron.classList.remove('open');
+                parent.classList.remove('active');
+            } else {
+                collapse.classList.add('open');
+                chevron.classList.add('open');
+                parent.classList.add('active');
+            }
+        });
+    });
+    // Menu con: set active và gọi hàm load
+    document.getElementById('menu-user-list').onclick = function(e) {
+        e.preventDefault();
+        setActiveMenu('menu-user-list');
+        loadUserList();
+    };
+    document.getElementById('menu-user-stats').onclick = function(e) {
+        e.preventDefault();
+        setActiveMenu('menu-user-stats');
+        loadUserChart();
+    };
+    document.getElementById('menu-car-list').onclick = function(e) {
+        e.preventDefault();
+        setActiveMenu('menu-car-list');
+        loadCarList();
+    };
+    document.getElementById('menu-car-stats').onclick = function(e) {
+        e.preventDefault();
+        setActiveMenu('menu-car-stats');
+        loadCarChart();
+    };
+    document.getElementById('menu-welcome').onclick = function(e) {
+        e.preventDefault();
+        setActiveMenu('menu-welcome');
+        loadWelcome();
+    };
+    document.getElementById('menu-logout').onclick = function(e) {
+        e.preventDefault();
+        logout();
+    };
+}
+document.addEventListener('DOMContentLoaded', function() {
+    setupSidebarMenu();
+    setActiveMenu('menu-welcome');
+});
