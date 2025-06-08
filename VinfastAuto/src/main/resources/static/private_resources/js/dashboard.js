@@ -1625,8 +1625,537 @@ function setupSidebarMenu() {
         e.preventDefault();
         logout();
     };
+    document.getElementById('menu-order-list').onclick = function(e) {
+        e.preventDefault();
+        setActiveMenu('menu-order-list');
+        loadOrderList();
+    };
+    document.getElementById('menu-order-stats').onclick = function(e) {
+        e.preventDefault();
+        setActiveMenu('menu-order-stats');
+        loadOrderStats();
+    };
 }
 document.addEventListener('DOMContentLoaded', function() {
     setupSidebarMenu();
     setActiveMenu('menu-welcome');
 });
+// ================== Quản lý ĐƠN HÀNG ==================
+let currentOrderPage = 0;
+let orderStatusFilter = "";
+let orderSearch = "";
+let orderSort = "orderDate";
+let orderDirection = "desc";
+function loadOrderList() {
+    document.getElementById("pageTitle").innerText = "Quản lý đơn hàng";
+    $('#carContent').hide();
+    $('#mainContent').show();
+    renderOrderTable();
+}
+
+function renderOrderTable() {
+    const params = new URLSearchParams({
+        page: currentOrderPage,
+        size: itemsPerPage,
+        sortBy: orderSort,
+        direction: orderDirection
+    });
+    if (orderSearch) {
+        params.append("keyword", orderSearch);
+    }
+    const url = orderSearch
+        ? `/orders/search?${params.toString()}`
+        : `/orders?${params.toString()}`;
+    showSpinner();
+    fetch(url, {
+        headers: {
+            "Authorization": "Bearer " + getToken()
+        }
+    })
+
+        .then(handleUnauthorized)
+        .then(data => {
+            hideSpinner();
+            // Kiểm tra xem data có đúng cấu trúc hay không:
+            if (!data || !data.content) {
+                showAlert("Không thể tải dữ liệu đơn hàng.", "danger");
+                return;
+            }
+
+            // Lấy mảng đơn hàng và tổng số trang
+            const orders = data.content;
+            const totalPages = data.totalPages;
+
+            // Tạo HTML hiển thị bảng
+            let html = `
+<div class="mb-3 d-flex justify-content-between align-items-center">
+  <div class="d-flex">
+     <input type="text" id="orderSearchInput" class="form-control me-2"
+           placeholder="Tìm theo tên khách hàng..." value="" oninput="toggleClearSearchBtn()">
+    <button class="btn btn-primary me-2" onclick="searchOrders()">
+      <i class="bi bi-search"></i>
+    </button>
+    <button class="btn btn-secondary" id="clearSearchBtn" style="display: none" onclick="clearOrderSearch()">
+      <i class="bi bi-x"></i>
+    </button>
+     <button class="btn btn-success text-white d-flex align-items-center gap-2" onClick="openOrderModal()">
+            <i class="bi bi-plus-circle-fill fs-5"></i>
+  
+    </button>
+  </div>
+  <div>
+    <button class="btn btn-outline-primary me-2" onclick="openImportOrderModal()">
+      <i class="bi bi-upload"></i> Nhập file
+    </button>
+    <button class="btn btn-outline-secondary me-2" onclick="exportOrders('csv')">
+      <i class="bi bi-download"></i> Xuất CSV
+    </button>
+    <button class="btn btn-outline-success" onclick="exportOrders('excel')">
+      <i class="bi bi-file-earmark-excel"></i> Xuất Excel
+    </button>
+  </div>
+</div>
+<div class="mb-2 d-flex align-items-center">
+  <label class="me-2 mb-0">Sắp xếp theo:</label>
+  <select onchange="changeOrderSort(this.value)" class="form-select w-auto me-3">
+    <option value="orderDate" ${orderSort === 'orderDate' ? 'selected' : ''}>Ngày đặt</option>
+    <option value="customerName" ${orderSort === 'customerName' ? 'selected' : ''}>Khách hàng</option>
+    <option value="status" ${orderSort === 'status' ? 'selected' : ''}>Trạng thái</option>
+  </select>
+  <select onchange="changeOrderDirection(this.value)" class="form-select w-auto">
+    <option value="asc" ${orderDirection === 'asc' ? 'selected' : ''}>Tăng dần</option>
+    <option value="desc" ${orderDirection === 'desc' ? 'selected' : ''}>Giảm dần</option>
+  </select>
+</div>
+<table class="table table-bordered"><thead><tr>
+  <th>Khách hàng</th>
+  <th>SĐT</th>
+  <th>Ngày đặt</th>
+  <th>Mẫu xe</th>
+  <th>Số lượng</th>
+  <th>Giá</th>
+  <th>Trạng thái</th>
+  <th>Nơi mua</th>
+  <th>Hành động</th>
+</tr></thead><tbody>`;
+
+            orders.forEach(o => {
+                html += `<tr>
+              <td>${o.customerName || ""}</td>
+              <td>${o.phoneNumber || ""}</td>
+              <td>${o.orderDate || ""}</td>
+              <td>${o.carModel || ""}</td>
+              <td>${o.quantity}</td>
+              <td>${o.price?.toLocaleString() || ""}</td>
+              <td>${o.status || ""}</td>
+              <td>${o.placeOfPurchase || ""}</td>
+              <td>
+                <button class="btn btn-warning btn-sm" onclick="editOrder('${o.id}')">
+                  <i class="bi bi-pencil-fill"></i>
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="deleteOrder('${o.id}')">
+                  <i class="bi bi-trash-fill"></i>
+                </button>
+              </td>
+            </tr>`;
+            });
+
+            html += `</tbody></table>` + renderOrderPagination(totalPages);
+            document.getElementById("mainContent").innerHTML = html;
+        })
+        .catch(() => {
+            hideSpinner();
+            showAlert("Không thể tải dữ liệu đơn hàng.", "danger");
+        });
+
+}
+
+function renderOrderPagination(totalPages) {
+    if (totalPages <= 1) return "";
+
+    let html = '<nav><ul class="pagination justify-content-center">';
+
+    // Nút "First" («)
+    html += `<li class="page-item ${currentOrderPage === 0 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="goToOrderPage(0)" title="Trang đầu">&laquo;</a>
+             </li>`;
+
+    // Nếu currentOrderPage > 2, hiển thị "1" và "…"
+    if (currentOrderPage > 2) {
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="goToOrderPage(0)">1</a></li>`;
+        html += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+    }
+
+    // Hiện 2 trang trước, hiện tại, 2 trang sau
+    const start = Math.max(0, currentOrderPage - 2);
+    const end = Math.min(totalPages - 1, currentOrderPage + 2);
+    for (let i = start; i <= end; i++) {
+        html += `<li class="page-item ${i === currentOrderPage ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="goToOrderPage(${i})">${i + 1}</a>
+                 </li>`;
+    }
+
+    // Nếu currentOrderPage < totalPages-3, hiển thị "…" và cuối cùng
+    if (currentOrderPage < totalPages - 3) {
+        html += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="goToOrderPage(${totalPages - 1})">${totalPages}</a></li>`;
+    }
+
+    // Nút "Last" (»)
+    html += `<li class="page-item ${currentOrderPage === totalPages - 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="goToOrderPage(${totalPages - 1})" title="Trang cuối">&raquo;</a>
+             </li>`;
+
+    html += '</ul></nav>';
+    return html;
+}
+
+function goToOrderPage(page) {
+    currentOrderPage = page;
+    renderOrderTable();
+}
+function searchOrders() {
+    const input = document.getElementById("orderSearchInput").value.trim();
+    orderSearch = input;
+    currentOrderPage = 0;
+    renderOrderTable();
+}
+
+function clearOrderSearch() {
+    document.getElementById("orderSearchInput").value = "";
+    orderSearch = "";
+    toggleClearSearchBtn();
+    currentOrderPage = 0;
+    renderOrderTable();
+}
+function toggleClearSearchBtn() {
+    const input = document.getElementById("orderSearchInput").value.trim();
+    const btn = document.getElementById("clearSearchBtn");
+    btn.style.display = input.length > 0 ? "inline-block" : "none";
+}
+function changeOrderSort(sortBy) {
+    orderSort = sortBy;
+    currentOrderPage = 0;
+    renderOrderTable();
+}
+
+function changeOrderDirection(direction) {
+    orderDirection = direction;
+    currentOrderPage = 0;
+    renderOrderTable();
+}
+
+// ================== CRUD ĐƠN HÀNG ==================
+
+function openOrderModal() {
+
+    loadCustomersAndCars();
+    new bootstrap.Modal(document.getElementById("orderModal")).show();
+}
+
+function loadCustomersAndCars() {
+    fetch("/users", {
+        headers: {"Authorization": "Bearer " + getToken()}
+    })
+        .then(res => res.json())
+        .then(users => {
+            const customerSelect = document.getElementById("customerSelect");
+            customerSelect.innerHTML = "";
+            users.forEach(u => {
+                const fullName = (u.lastName ? u.lastName : "") + (u.firstName ? (" " + u.firstName) : "");
+                customerSelect.innerHTML += `<option value="${u.id}">${fullName.trim()}</option>`;
+            });
+        });
+
+    fetch("/cars", {
+        headers: {"Authorization": "Bearer " + getToken()}
+    })
+        .then(res => {
+            if (!res.ok) throw new Error(`Lỗi HTTP! Trạng thái: ${res.status}`);
+            return res.json();
+        })
+        .then(data => {
+            const carSelect = document.getElementById("carSelect");
+            carSelect.innerHTML = "";
+            const cars = Array.isArray(data) ? data : data.data || [];
+            if (cars.length === 0) {
+                carSelect.innerHTML = '<option value="">Không có xe</option>';
+                return;
+            }
+            cars.forEach(c => {
+                carSelect.innerHTML += `<option value="${c.carId}">${c.name}</option>`;
+            });
+        })
+        .catch(error => {
+            document.getElementById("carSelect").innerHTML = '<option value="">Lỗi khi tải xe</option>';
+        });
+}
+
+function submitOrder() {
+    const order = {
+        userId: document.getElementById("customerSelect").value,
+        carId: parseInt(document.getElementById("carSelect").value),
+        orderDate: document.getElementById("orderDate").value,
+        quantity: parseInt(document.getElementById("quantity").value),
+        price: parseFloat(document.getElementById("price").value),
+        status: document.getElementById("status").value,
+        placeOfPurchase: document.getElementById("placeOfPurchase").value
+    };
+
+    fetch("/orders", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + getToken()
+        },
+        body: JSON.stringify(order)
+    })
+        .then(res => {
+            if (!res.ok) throw new Error("Lỗi khi tạo đơn hàng");
+            return res.json();
+        })
+        .then(() => {
+            showAlert("Tạo đơn hàng thành công!", "success");
+
+            const modalElement = document.getElementById("orderModal");
+            const modalInstance = bootstrap.Modal.getInstance(modalElement);
+            if (modalInstance) modalInstance.hide();
+
+            loadOrderList(); // reload lại bảng danh sách
+        })
+        .catch(err => {
+            showAlert("Tạo đơn hàng thất bại: " + err.message, "danger");
+        });
+}
+
+function editOrder(orderId) {
+    fetch(`/orders/${orderId}`, {
+        headers: {"Authorization": "Bearer " + getToken()}
+    })
+        .then(res => res.json())
+        .then(order => {
+            document.getElementById("editOrderId").value = order.id;
+            document.getElementById("editCustomerName").value = order.customerName;
+            document.getElementById("editOrderDate").value = order.orderDate;
+            document.getElementById("editQuantity").value = order.quantity;
+            document.getElementById("editPrice").value = order.price;
+            document.getElementById("editStatus").value = order.status;
+            document.getElementById("editPlaceOfPurchase").value = order.placeOfPurchase;
+
+            // load danh sách xe vào dropdown
+            fetch("/cars", {
+                headers: {"Authorization": "Bearer " + getToken()}
+            })
+                .then(res => {
+                    if (!res.ok) throw new Error(`Lỗi HTTP! Trạng thái: ${res.status}`);
+                    return res.json();
+                })
+                .then(data => {
+                    console.log('Phản hồi xe:', data); // Kiểm tra phản hồi
+                    const select = document.getElementById("editCarSelect");
+                    select.innerHTML = "";
+                    const cars = Array.isArray(data) ? data : data.data || [];
+                    if (cars.length === 0) {
+                        console.warn('Không tìm thấy xe');
+                        select.innerHTML = '<option value="">Không có xe</option>';
+                        return;
+                    }
+                    cars.forEach(c => {
+                        select.innerHTML += `<option value="${c.carId}" ${c.name === order?.carModel ? "selected" : ""}>${c.name}</option>`;
+                    });
+                })
+                .catch(error => {
+                    console.error('Lỗi khi lấy xe:', error);
+                    const select = document.getElementById("editCarSelect");
+                    select.innerHTML = '<option value="">Lỗi khi tải xe</option>';
+                });
+
+            new bootstrap.Modal(document.getElementById("orderEditModal")).show();
+        });
+}
+
+function submitOrderUpdate() {
+    const id = document.getElementById("editOrderId").value;
+    const data = {
+        carId: parseInt(document.getElementById("editCarSelect").value),
+        orderDate: document.getElementById("editOrderDate").value,
+        quantity: parseInt(document.getElementById("editQuantity").value),
+        price: parseFloat(document.getElementById("editPrice").value),
+        status: document.getElementById("editStatus").value,
+        placeOfPurchase: document.getElementById("editPlaceOfPurchase").value
+    };
+
+    fetch(`/orders/${id}`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + getToken()
+        },
+        body: JSON.stringify(data)
+    })
+        .then(res => {
+            if (!res.ok) throw new Error("Lỗi khi cập nhật đơn hàng");
+            return res.json();
+        })
+        .then(() => {
+            showAlert("Cập nhật đơn hàng thành công!", "success");
+            bootstrap.Modal.getInstance(document.getElementById("orderEditModal")).hide();
+            loadOrderList();
+        })
+        .catch(err => showAlert("Cập nhật đơn hàng thất bại: " + err.message, "danger"));
+}
+
+function deleteOrder(id) {
+    if (!confirm("Xác nhận xóa đơn hàng?")) return;
+    const token = getToken();
+    if (!token) return redirectToLogin();
+
+    fetch(`/orders/${id}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+    })
+        .then(handleUnauthorized)
+        .then(() => {
+            showAlert("Xóa đơn hàng thành công!", "success");
+            renderOrderTable();
+        })
+        .catch(() => showAlert("Không thể xóa đơn hàng.", "danger"));
+}
+function openImportOrderModal() {
+    const modal = new bootstrap.Modal(document.getElementById("importOrderModal"));
+    modal.show();
+}
+
+function importOrderFile() {
+    const input = document.getElementById("importFileo");
+    if (input.files.length === 0) {
+        showAlert("Vui lòng chọn file!", "warning");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", input.files[0]);
+
+    fetch("/orders/import", {
+        method: "POST",
+        headers: {
+            "Authorization": "Bearer " + getToken()
+        },
+        body: formData
+    })
+        .then(res => {
+            if (!res.ok) throw new Error("Import thất bại");
+            return res.json();
+        })
+        .then(() => {
+            showAlert("Import thành công!", "success");
+            loadOrderList(); // hoặc reload lại
+        })
+        .catch(err => {
+            showAlert("Lỗi khi import: " + err.message, "danger");
+        });
+}
+
+function exportOrders(type) {
+    const fileName = type === "csv" ? "orders.csv" : "orders.xlsx";
+    fetch(`/orders/export/${type}`, {
+        headers: {
+            "Authorization": "Bearer " + getToken()
+        }
+    })
+        .then(res => {
+            if (!res.ok) throw new Error("Xuất file thất bại");
+            return res.blob();
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        })
+        .catch(err => showAlert("Lỗi khi xuất file: " + err.message, "danger"));
+}
+function loadOrderStats() {
+    document.getElementById("pageTitle").innerText = "Thống kê đơn hàng";
+    $('#carContent').hide();
+    $('#mainContent').show();
+    document.getElementById("mainContent").innerHTML = `
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5>Biểu đồ thống kê đơn hàng</h5>
+        <div>
+          <select class="form-select d-inline-block w-auto me-2" id="orderStatType" onchange="updateOrderChart()">
+            <option value="status">Theo trạng thái</option>
+            <option value="price">Theo khoảng giá trị</option>
+          </select>
+          <select class="form-select d-inline-block w-auto me-2" id="orderChartType" onchange="updateOrderChart()">
+            <option value="bar">Biểu đồ cột</option>
+            <option value="pie">Biểu đồ tròn</option>
+            <option value="line">Biểu đồ đường</option>
+            <option value="doughnut">Doughnut</option>
+          </select>
+          <button class="btn btn-outline-success" onclick="downloadOrderChartImage()">
+            <i class="bi bi-download"></i> Tải ảnh
+          </button>
+        </div>
+      </div>
+      <canvas id="orderChart" style="height: 400px;"></canvas>
+    `;
+    renderOrderChart();
+}
+let orderChartInstance;
+
+function renderOrderChart() {
+    const token = getToken();
+    const chartType = document.getElementById("orderChartType").value;
+    const statType = document.getElementById("orderStatType")?.value || "status";
+    let url = "/orders/statistics/by-status";
+    let label = "Số đơn hàng";
+    if (statType === "price") {
+        url = "/orders/statistics/by-price-range";
+        label = "Số đơn hàng theo khoảng giá trị";
+    }
+    fetch(url, {
+        headers: { "Authorization": `Bearer ${token}` }
+    })
+        .then(res => res.json())
+        .then(result => {
+            const data = result.data || [];
+            const labels = data.map(item => item.key);
+            const values = data.map(item => item.count);
+            const ctx = document.getElementById("orderChart").getContext("2d");
+            if (orderChartInstance) orderChartInstance.destroy();
+            orderChartInstance = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels,
+                    datasets: [{
+                        label,
+                        data: values,
+                        backgroundColor: [
+                            "#007bff", "#28a745", "#ffc107", "#dc3545", "#6f42c1", "#4e79a7", "#f28e2b", "#e15759", "#76b7b2", "#59a14f", "#edc949"
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: chartType === 'bar' || chartType === 'line' ? {
+                        y: { beginAtZero: true }
+                    } : {}
+                }
+            });
+        })
+        .catch(() => showAlert("Không thể tải thống kê đơn hàng.", "danger"));
+}
+
+function updateOrderChart() {
+    renderOrderChart();
+}
+function downloadOrderChartImage() {
+    const link = document.createElement("a");
+    link.href = orderChartInstance.toBase64Image();
+    link.download = "order-chart.png";
+    link.click();
+}

@@ -5,9 +5,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 public class StatisticResponse {
-    private String key; // có thể là năm, vị trí, nhóm tuổi
-    private Integer count;
+    private String key;
+    private int count;
 }

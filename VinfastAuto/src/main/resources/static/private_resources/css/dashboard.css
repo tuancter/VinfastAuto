@@ -82,3 +82,60 @@ input[readonly] {
     background-color: #e9ecef; /* Màu xám nhạt */
     cursor: not-allowed; /* Con trỏ chuột hiển thị không cho phép */
 }
+/* <!-- Thêm CSS cho icon xoay và active --> */
+.sidebar .sidebar-parent {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding: 10px 16px;
+    font-weight: 500;
+    color: #222;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+.sidebar .sidebar-parent.active, .sidebar .sidebar-child.active, .sidebar-link.active {
+    background: #e9ecef;
+    color: #0d6efd;
+    font-weight: bold;
+}
+.sidebar .sidebar-child {
+    display: flex;
+    align-items: center;
+    padding: 8px 32px;
+    color: #222;
+    text-decoration: none;
+    transition: background 0.2s;
+    cursor: pointer;
+}
+.sidebar .sidebar-child i {
+    margin-right: 8px;
+}
+.sidebar .sidebar-collapse {
+    display: none;
+    flex-direction: column;
+}
+.sidebar .sidebar-collapse.open {
+    display: flex;
+}
+.chevron {
+    transition: transform 0.2s;
+}
+.chevron.open {
+    transform: rotate(90deg);
+}
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    color: #222;
+    text-decoration: none;
+    transition: background 0.2s;
+    cursor: pointer;
+}
+.sidebar-title {
+    font-weight: bold;
+    color: #0d6efd;
+    padding: 16px 16px 8px 16px;
+    font-size: 1.2rem;
+}

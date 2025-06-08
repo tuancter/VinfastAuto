@@ -33,6 +33,16 @@
             <a href="#" class="sidebar-child" id="menu-car-stats"><i class="bi bi-bar-chart-fill"></i> Thống kê xe ô tô</a>
         </div>
     </div>
+    <div class="sidebar-group">
+      <a class="sidebar-parent" id="parent-order" href="#">
+          <span><i class="bi bi-truck-front-fill"></i> Quản lý đơn hàng</span>
+          <i class="bi bi-chevron-right chevron" id="chevron-order"></i>
+      </a>
+      <div class="sidebar-collapse" id="collapse-order">
+          <a href="#" class="sidebar-child" id="menu-order-list"><i class="bi bi-list-ul"></i> Danh sách đơn hàng</a>
+          <a href="#" class="sidebar-child" id="menu-order-stats"><i class="bi bi-bar-chart-fill"></i> Thống kê đơn hàng</a>
+      </div>
+  </div>
     <a href="#" class="sidebar-link" id="menu-logout"><i class="bi bi-box-arrow-right"></i> Đăng xuất</a>
 </div>
 
@@ -197,72 +207,140 @@
 </div>
 
 <div id="alertContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1050;"></div>
+<!-- Modal Thêm Đơn hàng -->
+<div class="modal fade" id="orderModal" tabindex="-1" aria-labelledby="orderModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title" id="orderModalLabel">Tạo đơn hàng mới</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+          </div>
+          <div class="modal-body">
+              <form id="orderForm">
+                  <div class="mb-3">
+                      <label class="form-label">Khách hàng</label>
+                      <select id="customerSelect" class="form-select" required></select>
+                  </div>
+                  <div class="mb-3">
+                      <label class="form-label">Mẫu xe</label>
+                      <select id="carSelect" class="form-select" required></select>
+                  </div>
+                  <div class="mb-3">
+                      <label class="form-label">Ngày đặt</label>
+                      <input type="date" class="form-control" id="orderDate" required>
+                  </div>
+                  <div class="mb-3">
+                      <label class="form-label">Số lượng</label>
+                      <input type="number" class="form-control" id="quantity" required>
+                  </div>
+                  <div class="mb-3">
+                      <label class="form-label">Giá</label>
+                      <input type="number" class="form-control" id="price" required>
+                  </div>
+                  <div class="mb-3">
+                      <label class="form-label">Trạng thái</label>
+                      <select class="form-select" id="status" required>
+                          <option value="PENDING">Chờ xác nhận</option>
+                          <option value="CONFIRMED">Đã xác nhận</option>
+                          <option value="SHIPPED">Đang giao</option>
+                          <option value="DELIVERED">Đã giao</option>
+                          <option value="CANCELLED">Đã hủy</option>
+                      </select>
+                  </div>
+                  <div class="mb-3">
+                      <label class="form-label">Nơi mua</label>
+                      <input type="text" class="form-control" id="placeOfPurchase" required>
+                  </div>
+              </form>
+          </div>
+          <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+              <button type="button" class="btn btn-primary" onclick="submitOrder()">Lưu đơn hàng</button>
+          </div>
+      </div>
+  </div>
+</div>
+<!-- Modal sửa đơn hàng -->
+<div class="modal fade" id="orderEditModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+          <div class="modal-header"><h5 class="modal-title">Sửa đơn hàng</h5></div>
+          <div class="modal-body">
+              <input type="hidden" id="editOrderId">
 
+              <!-- Khách hàng (không được thay đổi) -->
+              <div class="mb-3">
+                  <label class="form-label">Khách hàng</label>
+                  <input type="text" class="form-control" id="editCustomerName" disabled>
+              </div>
+
+              <!-- Các trường khác có thể chỉnh -->
+              <div class="mb-3">
+                  <label class="form-label">Mẫu xe</label>
+                  <select class="form-select" id="editCarSelect"></select>
+              </div>
+
+              <div class="mb-3">
+                  <label class="form-label">Ngày đặt</label>
+                  <input type="date" class="form-control" id="editOrderDate">
+              </div>
+
+              <div class="mb-3">
+                  <label class="form-label">Số lượng</label>
+                  <input type="number" class="form-control" id="editQuantity">
+              </div>
+
+              <div class="mb-3">
+                  <label class="form-label">Giá</label>
+                  <input type="number" class="form-control" id="editPrice">
+              </div>
+
+              <div class="mb-3">
+                  <label class="form-label">Trạng thái</label>
+                  <select class="form-select" id="editStatus">
+                      <option value="PENDING">Chờ xác nhận</option>
+                      <option value="CONFIRMED">Đã xác nhận</option>
+                      <option value="SHIPPED">Đang giao</option>
+                      <option value="DELIVERED">Đã giao</option>
+                      <option value="CANCELLED">Đã hủy</option>
+                  </select>
+              </div>
+
+              <div class="mb-3">
+                  <label class="form-label">Nơi mua</label>
+                  <input type="text" class="form-control" id="editPlaceOfPurchase">
+              </div>
+          </div>
+          <div class="modal-footer">
+              <button class="btn btn-primary" onclick="submitOrderUpdate()">Lưu</button>
+              <button class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+          </div>
+      </div>
+  </div>
+</div>
+<!-- Modal Import Đơn hàng -->
+<div class="modal fade" id="importOrderModal" tabindex="-1">
+  <div class="modal-dialog">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title">Nhập đơn hàng từ file</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+              <input type="file" id="importFileo" accept=".csv,.xlsx" class="form-control">
+          </div>
+          <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+              <button type="button" class="btn btn-primary" onclick="importOrderFile()">Nhập</button>
+          </div>
+      </div>
+  </div>
+</div>
 <!-- Scripts -->
 <script src="/libs/jQuery/jquery-3.7.1.js"></script>
 <script src="/libs/bootstrap-5.3.3-dist/js/bootstrap.bundle.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="/private_resources/js/dashboard.js"></script>
-
-<!-- Thêm CSS cho icon xoay và active -->
-<style>
-.sidebar .sidebar-parent {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-    padding: 10px 16px;
-    font-weight: 500;
-    color: #222;
-    text-decoration: none;
-    transition: background 0.2s;
-}
-.sidebar .sidebar-parent.active, .sidebar .sidebar-child.active, .sidebar-link.active {
-    background: #e9ecef;
-    color: #0d6efd;
-    font-weight: bold;
-}
-.sidebar .sidebar-child {
-    display: flex;
-    align-items: center;
-    padding: 8px 32px;
-    color: #222;
-    text-decoration: none;
-    transition: background 0.2s;
-    cursor: pointer;
-}
-.sidebar .sidebar-child i {
-    margin-right: 8px;
-}
-.sidebar .sidebar-collapse {
-    display: none;
-    flex-direction: column;
-}
-.sidebar .sidebar-collapse.open {
-    display: flex;
-}
-.chevron {
-    transition: transform 0.2s;
-}
-.chevron.open {
-    transform: rotate(90deg);
-}
-.sidebar-link {
-    display: flex;
-    align-items: center;
-    padding: 10px 16px;
-    color: #222;
-    text-decoration: none;
-    transition: background 0.2s;
-    cursor: pointer;
-}
-.sidebar-title {
-    font-weight: bold;
-    color: #0d6efd;
-    padding: 16px 16px 8px 16px;
-    font-size: 1.2rem;
-}
-</style>
 </body>
 </html>
