@@ -66,8 +66,6 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getById(id));
     }
 
-
-
     @GetMapping
     public ResponseEntity<PageResponse<OrderResponse>> getAll(Pageable pageable) {
         Page<Order> page = orderService.findAll(pageable);
@@ -86,10 +84,6 @@ public class OrderController {
         return ResponseEntity.ok(resp);
     }
 
-
-
-    //    GET /orders/search?keyword=xxx&page=0&size=10&sortBy=orderDate&direction=desc
-
     @GetMapping("/search")
     public ResponseEntity<PageResponse<OrderResponse>> search(
             @RequestParam(required = false) String keyword,
@@ -101,22 +95,4 @@ public class OrderController {
         return ResponseEntity.ok(orderService.searchOrders(keyword, page, size, sortBy, direction));
     }
 
-    //    GET /orders/statistics/by-status
-    @GetMapping("/statistics/by-status")
-    public ApiResponse<List<StatisticResponse>> statsByStatus() {
-        List<StatisticResponse> stats = orderService.getOrderCountByStatus();
-        return ApiResponse.<List<StatisticResponse>>builder()
-                .statusCode(2000)
-                .data(stats)
-                .build();
-    }
-
-    @GetMapping("/statistics/by-price-range")
-    public ApiResponse<List<StatisticResponse>> getOrderCountByPriceRange() {
-        List<StatisticResponse> stats = orderService.getOrderCountByPriceRange();
-        return ApiResponse.<List<StatisticResponse>>builder()
-                .statusCode(2000)
-                .data(stats)
-                .build();
-    }
 }

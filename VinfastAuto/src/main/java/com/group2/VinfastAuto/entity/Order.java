@@ -1,13 +1,14 @@
 package com.group2.VinfastAuto.entity;
 
-import  com.group2.VinfastAuto.enums.OrderStatus;
+import com.group2.VinfastAuto.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.*;
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import com.group2.VinfastAuto.entity.User;
+import java.time.LocalDateTime;
 
-
+/**
+ * Entity class that represents an order in the system.
+ * Maps to the 'orders' table in the database.
+ */
 @Entity
 @Table(name = "orders")
 @Getter
@@ -19,6 +20,7 @@ public class Order {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "order_id")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -29,14 +31,12 @@ public class Order {
     @JoinColumn(name = "car_id")
     private Car car;
 
-    private LocalDate orderDate;
-
-    private int quantity;
-
-    private double price;
+    @Column(name = "order_date")
+    private LocalDateTime orderDate;
 
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
-
-    private String placeOfPurchase;
+    
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 }

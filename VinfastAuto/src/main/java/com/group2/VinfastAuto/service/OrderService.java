@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,24 +36,25 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
     private final UserDAO userDAO;
-    private final CarRepository carRepository;
-
-    // Tạo đơn hàng mới
+    private final CarRepository carRepository;    /**
+     * Creates a new order in the system.
+     * The price is obtained from the associated car entity.
+     */
     public OrderResponse create(OrderCreationRequest request) {
         Order order = new Order();
 
-        User user = userDAO.findById(String.valueOf(request.getUserId()))
+        User user = userDAO.findById(request.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         Car car = carRepository.findById(request.getCarId())
                 .orElseThrow(() -> new ResourceNotFoundException("Car not found"));
 
         order.setUser(user);
         order.setCar(car);
-        order.setOrderDate(request.getOrderDate());
-        order.setQuantity(request.getQuantity());
-        order.setPrice(request.getPrice());
+        order.setOrderDate(request.getOrderDate() != null 
+            ? request.getOrderDate().atStartOfDay() 
+            : LocalDateTime.now());
         order.setStatus(OrderStatus.valueOf(request.getStatus()));
-        order.setPlaceOfPurchase(request.getPlaceOfPurchase());
+        order.setCreatedAt(LocalDateTime.now());
 
         return orderMapper.orderToOrderResponse(orderRepository.save(order));
     }
@@ -71,17 +73,9 @@ public class OrderService {
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "Car not found with id " + request.getCarId()));
             order.setCar(car);
-        }
-
-        // Cập nhật các trường còn lại
+        }        // Cập nhật các trường còn lại
         if (request.getOrderDate() != null) {
-            order.setOrderDate(request.getOrderDate());
-        }
-
-        order.setQuantity(request.getQuantity());
-
-        if (request.getPrice() != 0) {
-            order.setPrice(request.getPrice());
+            order.setOrderDate(request.getOrderDate().atStartOfDay());
         }
 
         if (request.getStatus() != null) {
@@ -91,10 +85,6 @@ public class OrderService {
                 throw new IllegalArgumentException(
                         "Invalid order status: " + request.getStatus());
             }
-        }
-
-        if (request.getPlaceOfPurchase() != null) {
-            order.setPlaceOfPurchase(request.getPlaceOfPurchase());
         }
 
         Order updated = orderRepository.save(order);
@@ -135,13 +125,13 @@ public class OrderService {
             return orderRepository.findAll(pageable);
         }
         return orderRepository.findByUser_LastNameContainingIgnoreCase(keyword, pageable);
-    }
-    // Ánh xạ thủ công sang DTO
+    }    // Ánh xạ thủ công sang DTO
     private OrderResponse mapToDto(Order o) {
         OrderResponse dto = new OrderResponse();
         dto.setId(o.getId());
 
         if (o.getUser() != null) {
+            dto.setUserId(o.getUser().getId());
             String fullName = (o.getUser().getLastName() != null ? o.getUser().getLastName() : "") +
                               (o.getUser().getFirstName() != null ? (" " + o.getUser().getFirstName()) : "");
             dto.setCustomerName(fullName.trim());
@@ -149,36 +139,29 @@ public class OrderService {
             dto.setEmail(o.getUser().getEmail() != null ? o.getUser().getEmail() : "");
             dto.setAddress(o.getUser().getPosition() != null ? o.getUser().getPosition() : "");
         } else {
+            dto.setUserId(null);
             dto.setCustomerName("");
             dto.setPhoneNumber("");
             dto.setEmail("");
             dto.setAddress("");
-        }
-
-        if (o.getCar() != null) {
+        }        if (o.getCar() != null) {
+            dto.setCarId(o.getCar().getCarId());
             dto.setCarModel(o.getCar().getName() != null
                     ? o.getCar().getName()
                     : "");
+            dto.setCarPrice(o.getCar().getPrice()); // Get price from the car entity
         } else {
+            dto.setCarId(null);
             dto.setCarModel("");
+            dto.setCarPrice(null);
         }
-
+        
         dto.setOrderDate(o.getOrderDate() != null
-                ? o.getOrderDate()
+                ? o.getOrderDate().toLocalDate()
                 : null);
-
-        dto.setQuantity(o.getQuantity());
-        dto.setPrice( o.getPrice() != NaN
-                ? o.getPrice()
-                : 0.0);
-
-        dto.setStatus(o.getStatus() != null
-                ? o.getStatus().name()
-                : "");
-
-        dto.setPlaceOfPurchase(o.getPlaceOfPurchase() != null
-                ? o.getPlaceOfPurchase()
-                : "");
+        
+        dto.setStatus(o.getStatus() != null ? o.getStatus().name() : null);
+        dto.setCreatedAt(o.getCreatedAt());
 
         return dto;
     }
@@ -229,7 +212,9 @@ public class OrderService {
         String[] labels = {"0 - 100tr", "100tr - 200tr", "200tr - 300tr", "300tr - 400tr", "400tr - 500tr", "500tr - 600tr", "600tr - 700tr", "700tr - 800tr", "800tr - 900tr", "900tr - 1tỷ", "> 1tỷ"};
         int[] counts = new int[labels.length];
         for (Order order : orders) {
-            double price = order.getPrice();
+            double price = order.getCar() != null && order.getCar().getPrice() != null
+                    ? order.getCar().getPrice().doubleValue()
+                    : NaN; // Sử dụng NaN nếu giá không hợp lệ
             boolean found = false;
             for (int i = 0; i < ranges.length - 1; i++) {
                 if (price >= ranges[i] && price < ranges[i+1]) {

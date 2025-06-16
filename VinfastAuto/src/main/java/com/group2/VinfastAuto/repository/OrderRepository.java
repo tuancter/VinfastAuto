@@ -21,11 +21,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @EntityGraph(attributePaths = {"user", "car"})
     Page<Order> findByUser_LastNameContainingIgnoreCase(String keyword, Pageable pageable);
-    Page<Order> findByStatus(OrderStatus status, Pageable pageable);
-
-    List<Order> findByStatus(OrderStatus status);
-
-    List<Order> findByPlaceOfPurchaseContainingIgnoreCase(String placeOfPurchase);
+    Page<Order> findByStatus(OrderStatus status, Pageable pageable);    List<Order> findByStatus(OrderStatus status);
 
      @Query("SELECT o.status, COUNT(o) FROM Order o GROUP BY o.status")
     List<Object[]> countTotalOrdersByStatus();

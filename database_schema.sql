@@ -66,3 +66,14 @@ CREATE TABLE cars (
     description TEXT
 );
 
+CREATE TABLE orders (
+    order_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id varchar(255) NOT NULL,
+    car_id BIGINT UNSIGNED NOT NULL,
+    order_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    status ENUM('PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED') DEFAULT 'PENDING',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (car_id) REFERENCES cars(car_id)
+);
+
